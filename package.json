@@ -1,0 +1,30 @@
+{
+  "name": "swagen-angular",
+  "version": "0.0.1",
+  "description": "Swagen generator for AngularJS",
+  "main": "index.js",
+  "scripts": {
+    "bump": "npm version patch --no-git-tag-version",
+    "bumppub": "npm run bump && npm publish",
+    "update": "npm un --save swagen-core swagen-typescript-language && npm i --save swagen-core swagen-typescript-language"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swagen/swagen-angular.git"
+  },
+  "keywords": [
+    "swagen",
+    "angular"
+  ],
+  "author": "Swagen <swagen@jeevanjames.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/swagen/swagen-angular/issues"
+  },
+  "homepage": "https://github.com/swagen/swagen-angular#readme",
+  "dependencies": {
+    "lodash": "^4.17.4",
+    "swagen-core": "0.0.16",
+    "swagen-typescript-language": "0.0.3"
+  }
+}
