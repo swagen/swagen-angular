@@ -2,7 +2,8 @@
 
 const modeMappings = {
     'ng1-typescript': 'ng1-typescript',
-    'ng1-ts': 'ng1-typescript'
+    'ng1-ts': 'ng1-typescript',
+    'ng1-typescript-experimental': 'ng1-typescript-experimental'
 };
 
 

@@ -1,6 +1,6 @@
 {
   "name": "swagen-angular",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "Swagen generator for AngularJS",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   "homepage": "https://github.com/swagen/swagen-angular#readme",
   "dependencies": {
     "lodash": "^4.17.4",
-    "swagen-core": "0.0.16",
+    "swagen-core": "0.0.17",
     "swagen-typescript-language": "0.0.3"
   }
 }
