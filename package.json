@@ -1,7 +1,7 @@
 {
   "name": "swagen-angular",
   "version": "0.0.9",
-  "description": "Swagen generator for AngularJS",
+  "description": "Swagen generator for Angular",
   "main": "index.js",
   "scripts": {
     "bump": "npm version patch --no-git-tag-version",
