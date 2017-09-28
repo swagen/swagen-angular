@@ -4,9 +4,11 @@
     "description": "Swagen generator for Angular",
     "main": "index.js",
     "scripts": {
+        "lint": "eslint lib/**/*.js",
         "bump": "npm version prerelease --no-git-tag-version",
-        "update": "npm un --save swagen-core swagen-typescript-language && npm i --save swagen-core swagen-typescript-language",
-        "postpublish": "npm run bump"
+        "prepublishOnly": "npm run lint",
+        "postpublish": "npm run bump",
+        "update": "npm un --save swagen-core swagen-typescript-language codewriter && npm i --save swagen-core swagen-typescript-language codewriter"
     },
     "repository": {
         "type": "git",
@@ -27,5 +29,8 @@
         "lodash": "^4.17.4",
         "swagen-core": "^1.0.0-beta.2",
         "swagen-typescript-language": "0.0.3"
+    },
+    "devDependencies": {
+        "eslint": "^4.7.2"
     }
 }
