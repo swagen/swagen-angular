@@ -1,0 +1,20 @@
+{
+    "output": "./output.cs",
+    "generator": "angular",
+    "mode": "ng-typescript",
+    "transforms": {
+        "serviceName": "pascalCase",
+        "operationName": "camelCase",
+        "modelName": "pascalCase",
+        "propertyName": "camelCase"
+    },
+    "url": "http://rpos-dev.azurewebsites.net/swagger/docs/v1",
+    "options": {
+        "namespaces": {
+            "services": "MyNamespace.Services",
+            "models": "MyNamespace.Services"
+        },
+        "serviceSuffix": "Client",
+        "accessLevel": "internal"
+    }
+}

@@ -8,7 +8,8 @@
         "bump": "npm version prerelease --no-git-tag-version",
         "prepublishOnly": "npm run lint",
         "postpublish": "npm run bump",
-        "update": "npm un --save swagen-core swagen-typescript-language codewriter && npm i --save swagen-core swagen-typescript-language codewriter"
+        "update": "npm un --save swagen-core swagen-typescript-language codewriter && npm i --save swagen-core swagen-typescript-language codewriter",
+        "test": "node ./test-harness"
     },
     "repository": {
         "type": "git",
@@ -25,7 +26,7 @@
     },
     "homepage": "https://github.com/swagen/swagen-angular#readme",
     "dependencies": {
-        "codewriter": "^1.1.0",
+        "codewriter": "^1.2.0-beta.2",
         "lodash": "^4.17.4",
         "swagen-core": "^1.0.0-beta.2",
         "swagen-typescript-language": "0.0.3"
