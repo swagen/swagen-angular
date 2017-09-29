@@ -10,17 +10,48 @@
 // Base URL: http://rpos-dev.azurewebsites.net/
 
 import { Injectable, Inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { Observable } from 'rxjs/Rx';
 
-import { environment } from '../../../environments/environment';
+import { environment } from '../../environments/environment';
+
+import { ApiCustomizations } from './customizations.ts';
+
+export interface IAssetsLiabilitiesClient {
+    assetsLiabilitiesGetAssetsLiabilities(applicationId: string, borrowerId: string, coBorrowerId: string): Observable<AssetsLiabilities>;
+
+    assetsLiabilitiesSaveAssetsLiabilities(assetsLiabilities: AssetsLiabilities): Observable<AssetsLiabilities>;
+}
+
+export interface IDataClient {
+    /**
+     * Retrieves all branches for the organization.
+     */
+    branchSearchBranches(startRecord: number, recordCount: number): Observable<BranchSearchResult>;
+
+    branchUpsertBranches(branches: Branch[]): Observable<Branch>;
+
+    branchGetBranch(id: string): Observable<Branch>;
+
+    branchDeleteBranch(id: string): Observable<any>;
+}
+
+export interface IRateSheetClient {
+    rateSheetSearchRateSheets(startRecord: number, recordCount: number): Observable<RateSheetSearchResults>;
+}
+
+export interface IUiRateSheetClient {
+    uiRateSheetGetDailyRateSheet(): Observable<DailyRateSheet>;
+
+    uiRateSheetGetArchiveRateSheets(): Observable<any>;
+}
 
 @Injectable()
 export class AssetsLiabilitiesClient implements IAssetsLiabilitiesClient {
     private readonly _baseUrl: string;
 
     constructor(private readonly _http: HttpClient) {
-        this._baseUrl = environment.baseUrl || 'http://rpos-dev.azurewebsites.net/';
+        this._baseUrl = environment.baseUri || 'http://rpos-dev.azurewebsites.net/';
     }
 
     public assetsLiabilitiesGetAssetsLiabilities(applicationId: string, borrowerId: string, coBorrowerId: string): Observable<AssetsLiabilities> {
@@ -30,44 +61,16 @@ export class AssetsLiabilitiesClient implements IAssetsLiabilitiesClient {
             borrowerId: encodeURIComponent('' + borrowerId),
             coBorrowerId: encodeURIComponent('' + coBorrowerId)
         };
-
-        const url = buildServiceUrl(this._baseUrl, resourceUrl, queryParams);
-
-        const content = '';
+        const url = this.buildServiceUrl(resourceUrl, queryParams);
 
         const options = {
-            body: content,
             headers: new Headers({
                 'Accept': 'application/json'
             }),
-            method: 'GET'
         };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processAssetsLiabilitiesGetAssetsLiabilities(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processAssetsLiabilitiesGetAssetsLiabilities(response);
-                } catch (e) {
-                    return <Observable<AssetsLiabilities>><any>Observable.throw(response);
-                }
-            }
-        });
-    }
-
-    private processAssetsLiabilitiesGetAssetsLiabilities(response: Response): Observable<AssetsLiabilities> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: AssetsLiabilities = !responseText ? null : <AssetsLiabilities>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 500:
-                return throwException(status, responseText);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
-        }
+        return this._http.get<AssetsLiabilities>(url, options)
+            .subscribe((response: HttpResponse<AssetsLiabilities>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
     }
 
     public assetsLiabilitiesSaveAssetsLiabilities(assetsLiabilities: AssetsLiabilities): Observable<AssetsLiabilities> {
@@ -76,44 +79,51 @@ export class AssetsLiabilitiesClient implements IAssetsLiabilitiesClient {
         }
 
         const resourceUrl: string = '/api/assets-liabilities';
-        const url = buildServiceUrl(this._baseUrl, resourceUrl);
-
-        const content = JSON.stringify(assetsLiabilities);
+        const url = this.buildServiceUrl(resourceUrl);
 
         const options = {
-            body: content,
             headers: new Headers({
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }),
-            method: 'PUT'
         };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processAssetsLiabilitiesSaveAssetsLiabilities(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processAssetsLiabilitiesSaveAssetsLiabilities(response);
-                } catch (e) {
-                    return <Observable<AssetsLiabilities>><any>Observable.throw(response);
-                }
-            }
-        });
+        return this._http.put<AssetsLiabilities>(url, assetsLiabilities, options)
+            .subscribe((response: HttpResponse<AssetsLiabilities>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
     }
 
-    private processAssetsLiabilitiesSaveAssetsLiabilities(response: Response): Observable<AssetsLiabilities> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: AssetsLiabilities = !responseText ? null : <AssetsLiabilities>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 500:
-                return throwException(status, responseText);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
+    private buildServiceUrl(resourceUrl: string, queryParams?: {[key: string]: string}): string {
+        let url: string = this._baseUrl;
+        const baseUrlSlash: boolean = url[url.length - 1] === '/';
+        const resourceUrlSlash: boolean = resourceUrl && resourceUrl[0] === '/';
+        if (!baseUrlSlash && !resourceUrlSlash) {
+            url += '/';
+        } else if (baseUrlSlash && resourceUrlSlash) {
+            url = url.substr(0, url.length - 1);
         }
+        url += resourceUrl;
+
+        if (!queryParams) {
+            return url;
+        }
+
+        let isFirst: boolean = true;
+        for (const p in queryParams) {
+            if (queryParams.hasOwnProperty(p) && queryParams[p]) {
+                const separator: string = isFirst ? '?' : '&';
+                url += `${separator}${p}=${queryParams[p]}`;
+                isFirst = false;
+            }
+        }
+        return url;
+    }
+
+    private createError(err: HttpErrorResponse): WebApiClientError {
+        const headers = err.headers.keys().reduce((accumulate: { [key: string]: string[] }, key: string) => {
+            accumulate[key] = err.headers.getAll(key);
+            return accumulate;
+        }, {});
+        return new WebApiClientError(err.message, err.status, headers);
     }
 }
 
@@ -122,7 +132,7 @@ export class DataClient implements IDataClient {
     private readonly _baseUrl: string;
 
     constructor(private readonly _http: HttpClient) {
-        this._baseUrl = environment.baseUrl || 'http://rpos-dev.azurewebsites.net/';
+        this._baseUrl = environment.baseUri || 'http://rpos-dev.azurewebsites.net/';
     }
 
     /**
@@ -134,44 +144,16 @@ export class DataClient implements IDataClient {
             startRecord: encodeURIComponent('' + startRecord),
             recordCount: encodeURIComponent('' + recordCount)
         };
-
-        const url = buildServiceUrl(this._baseUrl, resourceUrl, queryParams);
-
-        const content = '';
+        const url = this.buildServiceUrl(resourceUrl, queryParams);
 
         const options = {
-            body: content,
             headers: new Headers({
                 'Accept': 'application/json'
             }),
-            method: 'GET'
         };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processBranchSearchBranches(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processBranchSearchBranches(response);
-                } catch (e) {
-                    return <Observable<BranchSearchResult>><any>Observable.throw(response);
-                }
-            }
-        });
-    }
-
-    private processBranchSearchBranches(response: Response): Observable<BranchSearchResult> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: BranchSearchResult = !responseText ? null : <BranchSearchResult>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 500:
-                return throwException(status, responseText);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
-        }
+        return this._http.get<BranchSearchResult>(url, options)
+            .subscribe((response: HttpResponse<BranchSearchResult>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
     }
 
     public branchUpsertBranches(branches: Branch[]): Observable<Branch> {
@@ -180,46 +162,17 @@ export class DataClient implements IDataClient {
         }
 
         const resourceUrl: string = '/data/branches';
-        const url = buildServiceUrl(this._baseUrl, resourceUrl);
-
-        const content = JSON.stringify(branches);
+        const url = this.buildServiceUrl(resourceUrl);
 
         const options = {
-            body: content,
             headers: new Headers({
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }),
-            method: 'POST'
         };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processBranchUpsertBranches(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processBranchUpsertBranches(response);
-                } catch (e) {
-                    return <Observable<Branch>><any>Observable.throw(response);
-                }
-            }
-        });
-    }
-
-    private processBranchUpsertBranches(response: Response): Observable<Branch> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: Branch = !responseText ? null : <Branch>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 400:
-                return throwException(status, responseText);
-            case 500:
-                return throwException(status, responseText);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
-        }
+        return this._http.post<Branch>(url, branches, options)
+            .subscribe((response: HttpResponse<Branch>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
     }
 
     public branchGetBranch(id: string): Observable<Branch> {
@@ -229,45 +182,16 @@ export class DataClient implements IDataClient {
 
         const resourceUrl: string = '/data/branches/{id}'
             .replace('{id}', encodeURIComponent('' + id));
-        const url = buildServiceUrl(this._baseUrl, resourceUrl);
-
-        const content = '';
+        const url = this.buildServiceUrl(resourceUrl);
 
         const options = {
-            body: content,
             headers: new Headers({
                 'Accept': 'application/json'
             }),
-            method: 'GET'
         };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processBranchGetBranch(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processBranchGetBranch(response);
-                } catch (e) {
-                    return <Observable<Branch>><any>Observable.throw(response);
-                }
-            }
-        });
-    }
-
-    private processBranchGetBranch(response: Response): Observable<Branch> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: Branch = !responseText ? null : <Branch>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 404:
-                return throwException(status, responseText);
-            case 500:
-                return throwException(status, responseText);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
-        }
+        return this._http.get<Branch>(url, options)
+            .subscribe((response: HttpResponse<Branch>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
     }
 
     public branchDeleteBranch(id: string): Observable<any> {
@@ -277,203 +201,33 @@ export class DataClient implements IDataClient {
 
         const resourceUrl: string = '/data/branches/{id}'
             .replace('{id}', encodeURIComponent('' + id));
-        const url = buildServiceUrl(this._baseUrl, resourceUrl);
-
-        const content = '';
+        const url = this.buildServiceUrl(resourceUrl);
 
         const options = {
-            body: content,
             headers: new Headers({
                 'Accept': 'application/json'
             }),
-            method: 'DELETE'
         };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processBranchDeleteBranch(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processBranchDeleteBranch(response);
-                } catch (e) {
-                    return <Observable<any>><any>Observable.throw(response);
-                }
-            }
-        });
+        return this._http.delete<any>(url, options)
+            .subscribe((response: HttpResponse<any>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
     }
 
-    private processBranchDeleteBranch(response: Response): Observable<any> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: any = !responseText ? null : <any>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 204:
-                const result: any = !responseText ? null : <any>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 500:
-                return throwException(status, responseText);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
+    private buildServiceUrl(resourceUrl: string, queryParams?: {[key: string]: string}): string {
+        let url: string = this._baseUrl;
+        const baseUrlSlash: boolean = url[url.length - 1] === '/';
+        const resourceUrlSlash: boolean = resourceUrl && resourceUrl[0] === '/';
+        if (!baseUrlSlash && !resourceUrlSlash) {
+            url += '/';
+        } else if (baseUrlSlash && resourceUrlSlash) {
+            url = url.substr(0, url.length - 1);
         }
-    }
-}
+        url += resourceUrl;
 
-@Injectable()
-export class RateSheetClient implements IRateSheetClient {
-    private readonly _baseUrl: string;
-
-    constructor(private readonly _http: HttpClient) {
-        this._baseUrl = environment.baseUrl || 'http://rpos-dev.azurewebsites.net/';
-    }
-
-    public rateSheetSearchRateSheets(startRecord: number, recordCount: number): Observable<RateSheetSearchResults> {
-        const resourceUrl: string = '/api/rate-sheets';
-        const queryParams: {[key: string]: string} = {
-            startRecord: encodeURIComponent('' + startRecord),
-            recordCount: encodeURIComponent('' + recordCount)
-        };
-
-        const url = buildServiceUrl(this._baseUrl, resourceUrl, queryParams);
-
-        const content = '';
-
-        const options = {
-            body: content,
-            headers: new Headers({
-                'Accept': 'application/json'
-            }),
-            method: 'GET'
-        };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processRateSheetSearchRateSheets(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processRateSheetSearchRateSheets(response);
-                } catch (e) {
-                    return <Observable<RateSheetSearchResults>><any>Observable.throw(response);
-                }
-            }
-        });
-    }
-
-    private processRateSheetSearchRateSheets(response: Response): Observable<RateSheetSearchResults> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: RateSheetSearchResults = !responseText ? null : <RateSheetSearchResults>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            case 500:
-                return throwException(status, responseText);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
+        if (!queryParams) {
+            return url;
         }
-    }
-}
 
-@Injectable()
-export class UiRateSheetClient implements IUiRateSheetClient {
-    private readonly _baseUrl: string;
-
-    constructor(private readonly _http: HttpClient) {
-        this._baseUrl = environment.baseUrl || 'http://rpos-dev.azurewebsites.net/';
-    }
-
-    public uiRateSheetGetDailyRateSheet(): Observable<DailyRateSheet> {
-        const resourceUrl: string = '/ui/rate-sheets/daily';
-        const url = buildServiceUrl(this._baseUrl, resourceUrl);
-
-        const content = '';
-
-        const options = {
-            body: content,
-            headers: new Headers({
-                'Accept': 'application/json'
-            }),
-            method: 'GET'
-        };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processUiRateSheetGetDailyRateSheet(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processUiRateSheetGetDailyRateSheet(response);
-                } catch (e) {
-                    return <Observable<DailyRateSheet>><any>Observable.throw(response);
-                }
-            }
-        });
-    }
-
-    private processUiRateSheetGetDailyRateSheet(response: Response): Observable<DailyRateSheet> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: DailyRateSheet = !responseText ? null : <DailyRateSheet>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
-        }
-    }
-
-    public uiRateSheetGetArchiveRateSheets(): Observable<any> {
-        const resourceUrl: string = '/ui/rate-sheets/archive';
-        const url = buildServiceUrl(this._baseUrl, resourceUrl);
-
-        const content = '';
-
-        const options = {
-            body: content,
-            headers: new Headers({
-                'Accept': 'application/json'
-            }),
-            method: 'GET'
-        };
-
-        return this.http.request(url, options).flatMap(response =>
-            this.processUiRateSheetGetArchiveRateSheets(response)
-        ).catch(response => {
-            if (response instanceof Response) {
-                try {
-                    return this.processUiRateSheetGetArchiveRateSheets(response);
-                } catch (e) {
-                    return <Observable<any>><any>Observable.throw(response);
-                }
-            }
-        });
-    }
-
-    private processUiRateSheetGetArchiveRateSheets(response: Response): Observable<any> {
-        const status = +response.status;
-        const responseText = response.text();
-        switch (status) {
-            case 200:
-                const result: any = !responseText ? null : <any>JSON.parse(responseText, this.jsonParseReviver);
-                return Observable.of(result);
-            default:
-                throw new Error(`Unexpected status code ${status}`);
-        }
-    }
-}
-
-function buildServiceUrl(baseUrl: string, resourceUrl: string, queryParams?: {[key: string]: string}): string {
-    let url: string = baseUrl;
-    const baseUrlSlash: boolean = url[url.length - 1] === '/';
-    const resourceUrlSlash: boolean = resourceUrl[0] === '/';
-    if (!baseUrlSlash && !resourceUrlSlash) {
-        url += '/';
-    } else if (baseUrlSlash && resourceUrlSlash) {
-        url = url.substr(0, url.length - 1);
-    }
-    url += resourceUrl;
-
-    if (queryParams) {
         let isFirst: boolean = true;
         for (const p in queryParams) {
             if (queryParams.hasOwnProperty(p) && queryParams[p]) {
@@ -482,258 +236,394 @@ function buildServiceUrl(baseUrl: string, resourceUrl: string, queryParams?: {[k
                 isFirst = false;
             }
         }
+        return url;
     }
-    return url;
+
+    private createError(err: HttpErrorResponse): WebApiClientError {
+        const headers = err.headers.keys().reduce((accumulate: { [key: string]: string[] }, key: string) => {
+            accumulate[key] = err.headers.getAll(key);
+            return accumulate;
+        }, {});
+        return new WebApiClientError(err.message, err.status, headers);
+    }
 }
 
-export class SwaggerException extends Error {
-    constructor(public readonly status: number, public readonly response: string, public readonly result: string) {
-        super();
+@Injectable()
+export class RateSheetClient implements IRateSheetClient {
+    private readonly _baseUrl: string;
+
+    constructor(private readonly _http: HttpClient) {
+        this._baseUrl = environment.baseUri || 'http://rpos-dev.azurewebsites.net/';
+    }
+
+    public rateSheetSearchRateSheets(startRecord: number, recordCount: number): Observable<RateSheetSearchResults> {
+        const resourceUrl: string = '/api/rate-sheets';
+        const queryParams: {[key: string]: string} = {
+            startRecord: encodeURIComponent('' + startRecord),
+            recordCount: encodeURIComponent('' + recordCount)
+        };
+        const url = this.buildServiceUrl(resourceUrl, queryParams);
+
+        const options = {
+            headers: new Headers({
+                'Accept': 'application/json'
+            }),
+        };
+        return this._http.get<RateSheetSearchResults>(url, options)
+            .subscribe((response: HttpResponse<RateSheetSearchResults>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
+    }
+
+    private buildServiceUrl(resourceUrl: string, queryParams?: {[key: string]: string}): string {
+        let url: string = this._baseUrl;
+        const baseUrlSlash: boolean = url[url.length - 1] === '/';
+        const resourceUrlSlash: boolean = resourceUrl && resourceUrl[0] === '/';
+        if (!baseUrlSlash && !resourceUrlSlash) {
+            url += '/';
+        } else if (baseUrlSlash && resourceUrlSlash) {
+            url = url.substr(0, url.length - 1);
+        }
+        url += resourceUrl;
+
+        if (!queryParams) {
+            return url;
+        }
+
+        let isFirst: boolean = true;
+        for (const p in queryParams) {
+            if (queryParams.hasOwnProperty(p) && queryParams[p]) {
+                const separator: string = isFirst ? '?' : '&';
+                url += `${separator}${p}=${queryParams[p]}`;
+                isFirst = false;
+            }
+        }
+        return url;
+    }
+
+    private createError(err: HttpErrorResponse): WebApiClientError {
+        const headers = err.headers.keys().reduce((accumulate: { [key: string]: string[] }, key: string) => {
+            accumulate[key] = err.headers.getAll(key);
+            return accumulate;
+        }, {});
+        return new WebApiClientError(err.message, err.status, headers);
     }
 }
 
-function throwException(status: number, response: string, result?: string): Observable<any> {
-    return !!result ? Observable.throw(result) : Observable.throw(new SwaggerException(status, response, null));
+@Injectable()
+export class UiRateSheetClient implements IUiRateSheetClient {
+    private readonly _baseUrl: string;
+
+    constructor(private readonly _http: HttpClient) {
+        this._baseUrl = environment.baseUri || 'http://rpos-dev.azurewebsites.net/';
+    }
+
+    public uiRateSheetGetDailyRateSheet(): Observable<DailyRateSheet> {
+        const resourceUrl: string = '/ui/rate-sheets/daily';
+        const url = this.buildServiceUrl(resourceUrl);
+
+        const options = {
+            headers: new Headers({
+                'Accept': 'application/json'
+            }),
+        };
+        return this._http.get<DailyRateSheet>(url, options)
+            .subscribe((response: HttpResponse<DailyRateSheet>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
+    }
+
+    public uiRateSheetGetArchiveRateSheets(): Observable<any> {
+        const resourceUrl: string = '/ui/rate-sheets/archive';
+        const url = this.buildServiceUrl(resourceUrl);
+
+        const options = {
+            headers: new Headers({
+                'Accept': 'application/json'
+            }),
+        };
+        return this._http.get<any>(url, options)
+            .subscribe((response: HttpResponse<any>) => response.data)
+            .catch((err: HttpErrorResponse) => Observable.throw(this.createError(err)));
+    }
+
+    private buildServiceUrl(resourceUrl: string, queryParams?: {[key: string]: string}): string {
+        let url: string = this._baseUrl;
+        const baseUrlSlash: boolean = url[url.length - 1] === '/';
+        const resourceUrlSlash: boolean = resourceUrl && resourceUrl[0] === '/';
+        if (!baseUrlSlash && !resourceUrlSlash) {
+            url += '/';
+        } else if (baseUrlSlash && resourceUrlSlash) {
+            url = url.substr(0, url.length - 1);
+        }
+        url += resourceUrl;
+
+        if (!queryParams) {
+            return url;
+        }
+
+        let isFirst: boolean = true;
+        for (const p in queryParams) {
+            if (queryParams.hasOwnProperty(p) && queryParams[p]) {
+                const separator: string = isFirst ? '?' : '&';
+                url += `${separator}${p}=${queryParams[p]}`;
+                isFirst = false;
+            }
+        }
+        return url;
+    }
+
+    private createError(err: HttpErrorResponse): WebApiClientError {
+        const headers = err.headers.keys().reduce((accumulate: { [key: string]: string[] }, key: string) => {
+            accumulate[key] = err.headers.getAll(key);
+            return accumulate;
+        }, {});
+        return new WebApiClientError(err.message, err.status, headers);
+    }
+}
+
+export class WebApiClientError extends Error {
+    constructor(public message: string, public statusCode: number, public headers: { [key: string]: string[] }) {
+        super(message);
+    }
 }
 
 export interface Address {
-    lines?: string[] | undefined;
-    city?: string | undefined;
-    state?: string | undefined;
-    zip?: string | undefined;
-    id?: string | undefined;
+    lines?: string[];
+    city?: string;
+    state?: string;
+    zip?: string;
+    id?: string;
 }
 
 export interface Asset {
-    assetType?: AssetTypeAsset | undefined;
-    borrowerId?: string | undefined;
-    companyName?: string | undefined;
-    addressLines?: string[] | undefined;
-    city?: string | undefined;
-    state?: string | undefined;
-    zipCode?: string | undefined;
-    remarks?: string | undefined;
-    checkingSavings?: CheckingSavings[] | undefined;
-    stocksAndBonds?: StocksAndBonds[] | undefined;
-    autoOwned?: AutoOwned[] | undefined;
-    lifeInsurance?: LifeInsurance | undefined;
-    others?: Other[] | undefined;
-    retirementFundsBalance?: number | undefined;
-    netWorthBusinessBalance?: number | undefined;
-    totalBalance?: number | undefined;
-    recordStatus?: RecordStatusAsset | undefined;
-    id?: string | undefined;
+    assetType?: AssetTypeAsset;
+    borrowerId?: string;
+    companyName?: string;
+    addressLines?: string[];
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    remarks?: string;
+    checkingSavings?: CheckingSavings[];
+    stocksAndBonds?: StocksAndBonds[];
+    autoOwned?: AutoOwned[];
+    lifeInsurance?: LifeInsurance;
+    others?: Other[];
+    retirementFundsBalance?: number;
+    netWorthBusinessBalance?: number;
+    totalBalance?: number;
+    recordStatus?: RecordStatusAsset;
+    id?: string;
 }
 
 export interface AssetHeader {
-    appDepositDesc?: string | undefined;
-    appDepositAmt?: number | undefined;
-    earnestDesc?: string | undefined;
-    earnestAmt?: number | undefined;
-    cashTowardsPurchaseIncludeInNetWorth?: boolean | undefined;
-    id?: string | undefined;
+    appDepositDesc?: string;
+    appDepositAmt?: number;
+    earnestDesc?: string;
+    earnestAmt?: number;
+    cashTowardsPurchaseIncludeInNetWorth?: boolean;
+    id?: string;
 }
 
 export interface AssetsLiabilities {
-    applicationId?: string | undefined;
-    statementCompleted?: StatementCompletedAssetsLiabilities | undefined;
-    vacancyFactor?: number | undefined;
-    subjectPropertyAddress?: Address | undefined;
-    borrowerAddress?: BorrowerAddress | undefined;
-    coBorrowerAddress?: BorrowerAddress | undefined;
-    assetHeader?: AssetHeader | undefined;
-    assets?: Asset[] | undefined;
-    liabilities?: Liability[] | undefined;
-    realEstateOwnedList?: RealEstateOwned[] | undefined;
-    id?: string | undefined;
+    applicationId?: string;
+    statementCompleted?: StatementCompletedAssetsLiabilities;
+    vacancyFactor?: number;
+    subjectPropertyAddress?: Address;
+    borrowerAddress?: BorrowerAddress;
+    coBorrowerAddress?: BorrowerAddress;
+    assetHeader?: AssetHeader;
+    assets?: Asset[];
+    liabilities?: Liability[];
+    realEstateOwnedList?: RealEstateOwned[];
+    id?: string;
 }
 
 export interface AssetsLiabilitiesRequest {
-    applicationId?: string | undefined;
-    borrowerId?: string | undefined;
-    coBorrowerId?: string | undefined;
+    applicationId?: string;
+    borrowerId?: string;
+    coBorrowerId?: string;
 }
 
 export interface AutoOwned {
-    autosOwned?: string | undefined;
-    balanceOrMarketValue?: number | undefined;
-    id?: string | undefined;
+    autosOwned?: string;
+    balanceOrMarketValue?: number;
+    id?: string;
 }
 
 export interface BorrowerAddress {
-    borrowerId?: string | undefined;
-    address?: Address | undefined;
-    id?: string | undefined;
+    borrowerId?: string;
+    address?: Address;
+    id?: string;
 }
 
 export interface Branch {
-    name?: string | undefined;
-    id?: string | undefined;
+    name?: string;
+    id?: string;
 }
 
 export interface BranchFilterCriteria {
-    field?: FieldBranchFilterCriteria | undefined;
-    operation?: OperationBranchFilterCriteria | undefined;
-    value?: any | undefined;
+    field?: FieldBranchFilterCriteria;
+    operation?: OperationBranchFilterCriteria;
+    value?: any;
 }
 
 export interface BranchSearchCriteria {
-    filters?: BranchFilterCriteria[] | undefined;
-    sortSpecs?: BranchSortSpec[] | undefined;
-    startRecord?: number | undefined;
-    recordCount?: number | undefined;
+    filters?: BranchFilterCriteria[];
+    sortSpecs?: BranchSortSpec[];
+    startRecord?: number;
+    recordCount?: number;
 }
 
 export interface BranchSearchResult {
-    data?: Branch[] | undefined;
-    totalCount?: number | undefined;
+    data?: Branch[];
+    totalCount?: number;
 }
 
 export interface BranchSortSpec {
-    field?: FieldBranchFilterCriteria | undefined;
-    order?: OrderBranchSortSpec | undefined;
+    field?: FieldBranchFilterCriteria;
+    order?: OrderBranchSortSpec;
 }
 
 export interface CheckingSavings {
-    accountType?: AccountTypeCheckingSavings | undefined;
-    accountNumber?: string | undefined;
-    balanceOrMarketValue?: number | undefined;
-    recordStatus?: RecordStatusAsset | undefined;
-    id?: string | undefined;
+    accountType?: AccountTypeCheckingSavings;
+    accountNumber?: string;
+    balanceOrMarketValue?: number;
+    recordStatus?: RecordStatusAsset;
+    id?: string;
 }
 
 export interface DailyRateSheet {
-    branches?: BranchSearchResult | undefined;
-    rateSheets?: RateSheetSearchResults | undefined;
+    branches?: BranchSearchResult;
+    rateSheets?: RateSheetSearchResults;
 }
 
 export interface Error {
-    errorCode?: string | undefined;
-    correlationId?: string | undefined;
-    debug?: string | undefined;
+    errorCode?: string;
+    correlationId?: string;
+    debug?: string;
 }
 
 export interface Liability {
-    liabilityType?: LiabilityTypeLiability | undefined;
-    borrowerId?: string | undefined;
-    accountType?: AccountTypeLiability | undefined;
-    companyName?: string | undefined;
-    addressLines?: string[] | undefined;
-    city?: string | undefined;
-    state?: string | undefined;
-    zipCode?: string | undefined;
-    accountNumber?: string | undefined;
-    unpaidBalance?: number | undefined;
-    notCounted?: boolean | undefined;
-    toBePaidOff?: boolean | undefined;
-    omitted?: boolean | undefined;
-    listedOnCreditReport?: boolean | undefined;
-    resubordinated?: boolean | undefined;
-    defaultPaymentLeft?: number | undefined;
-    overrideDefault?: boolean | undefined;
-    overridePaymentLeft?: string | undefined;
-    monthlyPayment?: number | undefined;
-    atrNotes?: string | undefined;
-    otherNotes?: string | undefined;
-    isLinkedToReo?: boolean | undefined;
-    reoId?: string | undefined;
-    lienPosition?: number | undefined;
-    mortgagePayments?: number | undefined;
-    otherExpenceType?: OtherExpenceTypeLiability | undefined;
-    otherExpenseOwedTo?: string | undefined;
-    otherExpenseAmount?: number | undefined;
-    otherExpenseQmatrNotes?: string | undefined;
-    jobExpenseDesc1?: string | undefined;
-    jobExpenseAmount1?: number | undefined;
-    jobExpenseDesc2?: string | undefined;
-    jobExpenseAmount2?: number | undefined;
-    jobExpense1QmatrNotes?: string | undefined;
-    jobExpense2QmatrNotes?: string | undefined;
-    recordStatus?: RecordStatusAsset | undefined;
-    id?: string | undefined;
+    liabilityType?: LiabilityTypeLiability;
+    borrowerId?: string;
+    accountType?: AccountTypeLiability;
+    companyName?: string;
+    addressLines?: string[];
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    accountNumber?: string;
+    unpaidBalance?: number;
+    notCounted?: boolean;
+    toBePaidOff?: boolean;
+    omitted?: boolean;
+    listedOnCreditReport?: boolean;
+    resubordinated?: boolean;
+    defaultPaymentLeft?: number;
+    overrideDefault?: boolean;
+    overridePaymentLeft?: string;
+    monthlyPayment?: number;
+    atrNotes?: string;
+    otherNotes?: string;
+    isLinkedToReo?: boolean;
+    reoId?: string;
+    lienPosition?: number;
+    mortgagePayments?: number;
+    otherExpenceType?: OtherExpenceTypeLiability;
+    otherExpenseOwedTo?: string;
+    otherExpenseAmount?: number;
+    otherExpenseQmatrNotes?: string;
+    jobExpenseDesc1?: string;
+    jobExpenseAmount1?: number;
+    jobExpenseDesc2?: string;
+    jobExpenseAmount2?: number;
+    jobExpense1QmatrNotes?: string;
+    jobExpense2QmatrNotes?: string;
+    recordStatus?: RecordStatusAsset;
+    id?: string;
 }
 
 export interface LifeInsurance {
-    faceAmountName?: number | undefined;
-    balanceOrMarketValue?: number | undefined;
-    id?: string | undefined;
+    faceAmountName?: number;
+    balanceOrMarketValue?: number;
+    id?: string;
 }
 
 export interface Other {
-    assetName?: string | undefined;
-    balanceOrMarketValue?: number | undefined;
-    id?: string | undefined;
+    assetName?: string;
+    balanceOrMarketValue?: number;
+    id?: string;
 }
 
 export interface RateSheet {
-    name?: string | undefined;
-    fileType?: string | undefined;
-    branchId?: string | undefined;
-    fromDate?: Date | undefined;
-    toDate?: Date | undefined;
-    id?: string | undefined;
+    name?: string;
+    fileType?: string;
+    branchId?: string;
+    fromDate?: Date;
+    toDate?: Date;
+    id?: string;
 }
 
 export interface RateSheetFilterCriteria {
-    field?: FieldRateSheetFilterCriteria | undefined;
-    operation?: OperationBranchFilterCriteria | undefined;
-    value?: any | undefined;
+    field?: FieldRateSheetFilterCriteria;
+    operation?: OperationBranchFilterCriteria;
+    value?: any;
 }
 
 export interface RateSheetSearchCriteria {
-    filters?: RateSheetFilterCriteria[] | undefined;
-    sortSpecs?: RateSheetSortSpec[] | undefined;
-    startRecord?: number | undefined;
-    recordCount?: number | undefined;
+    filters?: RateSheetFilterCriteria[];
+    sortSpecs?: RateSheetSortSpec[];
+    startRecord?: number;
+    recordCount?: number;
 }
 
 export interface RateSheetSearchResults {
-    data?: RateSheet[] | undefined;
-    totalCount?: number | undefined;
+    data?: RateSheet[];
+    totalCount?: number;
 }
 
 export interface RateSheetSortSpec {
-    field?: FieldRateSheetFilterCriteria | undefined;
-    order?: OrderBranchSortSpec | undefined;
+    field?: FieldRateSheetFilterCriteria;
+    order?: OrderBranchSortSpec;
 }
 
 export interface RealEstateOwned {
-    borrowerId?: string | undefined;
-    isCurrentResidence?: boolean | undefined;
-    isSubjectProperty?: boolean | undefined;
-    propertyAddresses?: string[] | undefined;
-    city?: string | undefined;
-    state?: string | undefined;
-    zipCode?: string | undefined;
-    propertyStatus?: PropertyStatusRealEstateOwned | undefined;
-    typeOfProperty?: TypeOfPropertyRealEstateOwned | undefined;
-    presentMarketValue?: number | undefined;
-    amountOfMortgages?: number | undefined;
-    grossRentalIncome?: number | undefined;
-    vacancyFactor?: number | undefined;
-    overrideVacancyFactor?: boolean | undefined;
-    overrideVacancyFactorValue?: number | undefined;
-    incomeLessVacancy?: number | undefined;
-    mortgagePayments?: number | undefined;
-    includeTandI?: boolean | undefined;
-    insMainTaxHoa?: number | undefined;
-    netRentalIncome?: number | undefined;
-    overrideDefaultNri?: boolean | undefined;
-    overrideNriValue?: number | undefined;
-    piti?: number | undefined;
-    overrideDefaultPiti?: boolean | undefined;
-    overridePitiValue?: number | undefined;
-    linkedToLiability?: boolean | undefined;
-    linkedLiabilities?: Liability[] | undefined;
-    totalReoValue?: number | undefined;
-    recordStatus?: RecordStatusAsset | undefined;
-    id?: string | undefined;
+    borrowerId?: string;
+    isCurrentResidence?: boolean;
+    isSubjectProperty?: boolean;
+    propertyAddresses?: string[];
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    propertyStatus?: PropertyStatusRealEstateOwned;
+    typeOfProperty?: TypeOfPropertyRealEstateOwned;
+    presentMarketValue?: number;
+    amountOfMortgages?: number;
+    grossRentalIncome?: number;
+    vacancyFactor?: number;
+    overrideVacancyFactor?: boolean;
+    overrideVacancyFactorValue?: number;
+    incomeLessVacancy?: number;
+    mortgagePayments?: number;
+    includeTandI?: boolean;
+    insMainTaxHoa?: number;
+    netRentalIncome?: number;
+    overrideDefaultNri?: boolean;
+    overrideNriValue?: number;
+    piti?: number;
+    overrideDefaultPiti?: boolean;
+    overridePitiValue?: number;
+    linkedToLiability?: boolean;
+    linkedLiabilities?: Liability[];
+    totalReoValue?: number;
+    recordStatus?: RecordStatusAsset;
+    id?: string;
 }
 
 export interface StocksAndBonds {
-    bankName?: string | undefined;
-    balanceOrMarketValue?: number | undefined;
-    id?: string | undefined;
+    bankName?: string;
+    balanceOrMarketValue?: number;
+    id?: string;
 }
 
 export type AccountTypeCheckingSavings = 'NotAssigned' | 'Savings' | 'Checkings' | 'CashDepositOnSaleContract' | 'GiftNotDeposited' | 'CertificateOfDeposit' | 'MoneyMarketFund' | 'MutualFunds' | 'Stocks' | 'Bonds' | 'SecuredBorrowedFundsNotDeposited' | 'BridgeLoanNotDeposited' | 'RetairementFunds' | 'NetWorthOfBusinessOwned' | 'TrustFunds' | 'OtherNonLiquidAsset' | 'OtherLiquidAsset' | 'NetProceedsFromSaleOfRealEstate' | 'NetEquity' | 'CashOnHand' | 'GiftOfEquity';

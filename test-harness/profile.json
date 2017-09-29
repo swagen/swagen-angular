@@ -10,11 +10,25 @@
     },
     "url": "http://rpos-dev.azurewebsites.net/swagger/docs/v1",
     "options": {
-        "namespaces": {
-            "services": "MyNamespace.Services",
-            "models": "MyNamespace.Services"
+        "baseUrl": {
+            "strategy": "ImportedVar",
+            "importedVar": {
+                "importFrom": "../../environments/environment",
+                "importVariable": "environment",
+                "property": "baseUri"
+            },
+            "property": "baseUri"
         },
-        "serviceSuffix": "Client",
-        "accessLevel": "internal"
+        "customization": {
+            "importFrom": "./customizations.ts",
+            "importVariable": "ApiCustomizations"
+        },
+        "generation": {
+            "generateInterfaces": true,
+            "generateImplementations": true,
+            "generateModels": true,
+            "serviceClassSuffix": "Client",
+            "modelClassSuffix": "Model"
+        }
     }
 }

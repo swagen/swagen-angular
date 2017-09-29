@@ -26,7 +26,7 @@
     },
     "homepage": "https://github.com/swagen/swagen-angular#readme",
     "dependencies": {
-        "codewriter": "^1.2.0-beta.2",
+        "codewriter": "^1.2.0-beta.3",
         "lodash": "^4.17.4",
         "swagen-core": "^1.0.0-beta.2",
         "swagen-typescript-language": "0.0.3"
