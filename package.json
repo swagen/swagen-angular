@@ -3,6 +3,7 @@
     "version": "1.0.0-beta.7",
     "description": "Swagen generator for Angular",
     "main": "index.js",
+    "typings": "index.d.ts",
     "scripts": {
         "lint": "eslint lib/**/*.js",
         "bump": "npm version prerelease --no-git-tag-version",
