@@ -1,11 +1,10 @@
 'use strict';
 
 const modeMappings = {
-    'ng1-typescript': 'ng1-typescript',
-    'ng1-ts': 'ng1-typescript',
-    'ng1-typescript-experimental': 'ng1-typescript-experimental',
     'ng-typescript': 'ng-typescript',
     'ng-ts': 'ng-typescript',
+    'ng1-typescript': 'ng1-typescript',
+    'ng1-ts': 'ng1-typescript'
 };
 
 function generate(definition, profile) {
