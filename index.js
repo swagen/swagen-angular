@@ -17,9 +17,13 @@ function generate(definition, profile) {
 
 function validateProfile(profile) {
     const mode = modeMappings[profile.mode || 'ng-typescript'];
-    const validator = require(`./lib/${mode}/validator`);
-    if (typeof validator === 'function') {
-        validator(profile.options);
+    try {
+        const validator = require(`./lib/${mode}/validator`);
+        if (typeof validator === 'function') {
+            validator(profile.options);
+        }
+    } catch(ex) {
+        // Do nothing
     }
 }
 
