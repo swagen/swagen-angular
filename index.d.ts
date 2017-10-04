@@ -1,7 +1,7 @@
 /**
  * Options for Angular 2+ generators.
  */
-declare interface AngularTypescriptOptions {
+export interface AngularTypescriptOptions {
     generation?: {
         generateInterfaces?: boolean;
         generateImplementations?: boolean;
@@ -33,7 +33,7 @@ declare interface AngularTypescriptOptions {
 /**
  * Options for AngularJS 1.x generators.
  */
-declare interface AngularJsTypescriptOptions {
+export interface AngularJsTypescriptOptions {
     /**
      * Name of the Angular module to register the generated services under.
      */
