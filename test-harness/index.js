@@ -4,9 +4,7 @@ const fs = require('fs');
 
 const definition = require('./definition.json');
 const profile = require('./profile.json');
-const Generator = require('../lib/ng-typescript');
+const generator = require('../lib/ng-typescript');
 
-const generator = new Generator(definition, profile);
-const code = generator.generate();
-
-fs.writeFileSync('./test-harness/output.ts', code, 'utf8');
+const code = generator.generate(definition, profile);
+fs.writeFileSync(`./test-harness/output.${generator.extension}`, code, 'utf8');

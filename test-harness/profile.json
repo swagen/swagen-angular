@@ -1,14 +1,14 @@
 {
-    "output": "./output.cs",
+    "output": "./output.ts",
     "generator": "angular",
     "mode": "ng-typescript",
     "transforms": {
-        "serviceName": "pascalCase",
-        "operationName": "camelCase",
-        "modelName": "pascalCase",
-        "propertyName": "camelCase"
+        "serviceName": ["suffix:Client", "pascal-case"],
+        "operationName": "camel-case",
+        "modelName": "pascal-case",
+        "propertyName": "camel-case"
     },
-    "url": "http://rpos-dev.azurewebsites.net/swagger/docs/v1",
+    "url": "http://petstore.swagger.io/v2/swagger.json",
     "options": {
         "baseUrl": {
             "strategy": "Swagger",
@@ -25,8 +25,7 @@
         },
         "generation": {
             "generateInterfaces": true,
-            "generateImplementations": true,
-            "generateModels": true
+            "generateImplementations": true
         }
     }
 }
