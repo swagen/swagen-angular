@@ -2,9 +2,16 @@
 
 const fs = require('fs');
 
-const definition = require('./definition.json');
-const profile = require('./profile.json');
-const generator = require('../lib/ng-typescript');
+const modeName = 'ng1-javascript';
 
-const code = generator.generate(definition, profile);
-fs.writeFileSync(`./test-harness/output.${generator.extension}`, code, 'utf8');
+const definition = require('./definition.json');
+const profiles = require('./profile.json');
+const profile = profiles[modeName];
+
+const selectedMode = require('../lib/' + modeName);
+
+if (typeof selectedMode.validateProfile === 'function') {
+    selectedMode.validateProfile(profile);
+}
+const code = selectedMode.generate(definition, profile);
+fs.writeFileSync(`./test-harness/output.${selectedMode.extension}`, code, 'utf8');

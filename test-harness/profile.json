@@ -1,31 +1,57 @@
 {
-    "output": "./output.ts",
-    "generator": "angular",
-    "mode": "ng-typescript",
-    "transforms": {
-        "serviceName": ["suffix:Client", "pascal-case"],
-        "operationName": "camel-case",
-        "modelName": "pascal-case",
-        "propertyName": "camel-case"
-    },
-    "url": "http://petstore.swagger.io/v2/swagger.json",
-    "options": {
-        "baseUrl": {
-            "strategy": "Swagger",
-            "importedVar": {
-                "importFrom": "../../environments/environment",
-                "importVariable": "environment",
+    "ng-typescript": {
+        "output": "./output.ts",
+        "generator": "angular",
+        "mode": "ng-typescript",
+        "transforms": {
+            "serviceName": ["suffix:Client", "pascal-case"],
+            "operationName": "camel-case",
+            "modelName": "pascal-case",
+            "propertyName": "camel-case"
+        },
+        "url": "http://petstore.swagger.io/v2/swagger.json",
+        "options": {
+            "angular": {
+                "futuresType": "Promises"
+            },
+            "baseUrl": {
+                "strategy": "Swagger",
+                "importedVar": {
+                    "importFrom": "../../environments/environment",
+                    "importVariable": "environment",
+                    "property": "baseUri"
+                },
                 "property": "baseUri"
             },
-            "property": "baseUri"
+            "customization": {
+                "importFrom": "./customizations.ts",
+                "importVariable": "ApiCustomizations"
+            },
+            "generation": {
+                "generateInterfaces": true,
+                "generateImplementations": true
+            }
+        }
+    },
+    "ng1-javascript": {
+        "output": "./output.ts",
+        "generator": "angular",
+        "mode": "ng-typescript",
+        "transforms": {
+            "serviceName": ["suffix:Client", "pascal-case"],
+            "operationName": "camel-case",
+            "modelName": "pascal-case",
+            "propertyName": "camel-case"
         },
-        "customization": {
-            "importFrom": "./customizations.ts",
-            "importVariable": "ApiCustomizations"
-        },
-        "generation": {
-            "generateInterfaces": true,
-            "generateImplementations": true
+        "url": "http://petstore.swagger.io/v2/swagger.json",
+        "options": {
+            "module": "common",
+            "baseUrl": {
+                "provider": "appConfig",
+                "path": "baseUrl"
+            },
+            "quotes": "single",
+            "tsCheck": true
         }
     }
 }

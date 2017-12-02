@@ -86,3 +86,22 @@ export interface AngularJsTypescriptOptions {
      */
     references?: string[];
 }
+
+export interface AngularJsJavascriptOptions {
+    /**
+     * Name of the AngularJS module to register the generated services under.
+     */
+    module: string;
+
+    baseUrl: {
+        /**
+         * The injectable name of the Angular service containing the base URL.
+         */
+        provider: string;
+
+        /**
+         * Path to the member in the provider where the baseUrl can be retrieved from.
+         */
+        path?: string;
+    };
+}

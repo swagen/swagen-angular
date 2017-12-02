@@ -1,5 +1,5 @@
 # Project-specific
-test-harness/output.ts
+test-harness/output.*
 
 # Logs
 logs
