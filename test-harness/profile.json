@@ -1,10 +1,13 @@
 {
-    "ng-typescript": {
+    "ng-typescript2": {
         "output": "./output.ts",
         "generator": "angular",
         "mode": "ng-typescript",
         "transforms": {
-            "serviceName": ["suffix:Client", "pascal-case"],
+            "serviceName": [
+                "suffix:Client",
+                "pascal-case"
+            ],
             "operationName": "camel-case",
             "modelName": "pascal-case",
             "propertyName": "camel-case"
@@ -38,7 +41,10 @@
         "generator": "angular",
         "mode": "ng-typescript",
         "transforms": {
-            "serviceName": ["suffix:Client", "pascal-case"],
+            "serviceName": [
+                "suffix:Client",
+                "pascal-case"
+            ],
             "operationName": "camel-case",
             "modelName": "pascal-case",
             "propertyName": "camel-case"
@@ -52,6 +58,49 @@
             },
             "quotes": "single",
             "tsCheck": true
+        }
+    },
+    "ng-typescript": {
+        "output": "./src/app/services/search-ci-client.service.ts",
+        "generator": "angular",
+        "mode": "ng-typescript",
+        "transforms": {
+            "serviceName": [
+                "suffix:Client",
+                "pascal-case"
+            ],
+            "operationName": [
+                "camel-case"
+            ],
+            "parameterName": [
+                "camel-case"
+            ],
+            "modelName": [
+                "pascal-case"
+            ],
+            "propertyName": [
+                "camel-case"
+            ]
+        },
+        "url": "http://localhost:54517/swagger/v1/swagger.json",
+        "options": {
+            "generation": {
+                "generateInterfaces": false,
+                "generateImplementations": true
+            },
+            "baseUrl": {
+                "strategy": "ImportedVar",
+                "importedVar": {
+                    "importFrom": "../../environments/environment",
+                    "importVariable": "environment",
+                    "property": "baseUrl"
+                }
+            },
+            "angular": {
+                "tokenType": "InjectedToken",
+                "httpFramework": "HttpClient",
+                "futuresType": "Observables"
+            }
         }
     }
 }

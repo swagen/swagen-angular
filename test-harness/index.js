@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 
-const modeName = 'ng1-javascript';
+const modeName = 'ng-typescript';
 
 const definition = require('./definition.json');
 const profiles = require('./profile.json');
